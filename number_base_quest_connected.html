@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NUMBER BASE QUEST – นักถอดรหัสเลขฐาน</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ffffff; --card:#ffffff; --card2:#fff1f2; --txt:#2b1114; --mute:#7a5a5e;
+    --acc:#d42a3c; --acc2:#b3202f; --ok:#1e9e6a; --bad:#d42a3c; --line:#f2cdd2;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Sarabun',system-ui,sans-serif;background:radial-gradient(circle at 20% 0%,#ffe6e9,#ffffff 55%);color:var(--txt);min-height:100vh}
+  .wrap{max-width:820px;margin:0 auto;padding:20px 16px 60px}
+  h1{margin:8px 0 2px;font-size:2rem;letter-spacing:1px}
+  h1 span{color:var(--acc2)}
+  .sub{color:var(--mute);margin:0 0 18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 6px 24px rgba(212,42,60,.10)}
+  label{display:block;font-weight:600;margin:12px 0 6px}
+  input[type=text],textarea{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--txt);font-family:inherit;font-size:1rem}
+  textarea{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace}
+  input:focus,textarea:focus{outline:2px solid var(--acc);border-color:transparent}
+  button{font-family:inherit;font-size:1rem;font-weight:700;border:0;border-radius:10px;padding:12px 20px;cursor:pointer;background:var(--acc);color:#fff;transition:.15s}
+  button:hover{filter:brightness(1.12)}
+  button.sec{background:var(--card2);border:1px solid var(--line);color:var(--txt)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .msg{padding:10px 14px;border-radius:10px;margin-top:12px;font-size:.95rem}
+  .msg.err{background:#ffe3e6;border:1px solid var(--bad);color:#8f1522}
+  .msg.ok{background:#e3f7ee;border:1px solid var(--ok);color:#0f6b47}
+  .msg.info{background:#fff7f8;border:1px solid var(--line);color:var(--mute)}
+  .top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;color:var(--mute);font-size:.92rem}
+  .badge{background:var(--card2);border:1px solid var(--line);padding:4px 12px;border-radius:999px;color:var(--acc2);font-weight:700}
+  .bar{height:10px;background:var(--card2);border-radius:999px;overflow:hidden;margin:10px 0 4px}
+  .bar>div{height:100%;background:linear-gradient(90deg,#ff8a95,var(--acc));transition:width .3s}
+  .q{font-size:1.35rem;font-weight:700;margin:12px 0 6px;line-height:1.5}
+  .q sub{font-size:.7em}
+  .hint{color:var(--mute);font-size:.9rem}
+  .sol{background:var(--card2);border-radius:10px;padding:12px 16px;margin-top:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.95rem;line-height:1.7}
+  .sol div{margin:2px 0}
+  details summary{cursor:pointer;color:var(--acc);font-weight:600;margin-top:12px}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th,td{padding:10px;border-bottom:1px solid var(--line);text-align:center}
+  th:first-child,td:first-child{text-align:left}
+  .big{font-size:2.6rem;font-weight:800;color:var(--acc2);text-align:center;margin:6px 0}
+  .scores{display:flex;gap:12px;margin-top:10px;flex-wrap:wrap}
+  .pill{flex:1;min-width:120px;background:var(--card2);border-radius:10px;padding:10px;text-align:center}
+  .pill b{display:block;font-size:1.3rem}
+  .ok{color:var(--ok)} .bad{color:var(--bad)}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>NUMBER BASE <span>QUEST</span></h1>
+  <p class="sub">นักถอดรหัสเลขฐาน · 4 ด่าน · 40 ข้อ · 400 คะแนน</p>
+  <div id="app"></div>
+</div>
+
+<script>
+/* ============================================================
+   1) ข้อมูลและตัวสร้างโจทย์ (คำนวณเฉลยด้วยโค้ด ลดความผิดพลาด)
+   ============================================================ */
+/* ===== ตั้งค่าการเชื่อมต่อ Google Sheets =====
+   วาง URL ของ Web App (ที่ได้จาก Apps Script) ในเครื่องหมายคำพูดด้านล่าง
+   ถ้าเว้นว่างไว้ เกมจะทำงานแบบออฟไลน์ (เก็บในเบราว์เซอร์เครื่องนี้เท่านั้น) */
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbw20uzqTsgUr3Edd5wgTz2v4JZJ8eJLURjNotswNE_dRyO6ZyAjiuSHDcJcQDHVd4YnYQ/exec';
+const online = () => !!SHEET_URL;
+
+const T = (n, b) => n.toString(b).toUpperCase();
+const P = (s, b) => parseInt(s, b);
+const sub = b => `<sub>(${b})</sub>`;
+
+const LEVELS = [
+  { name: 'ด่าน 1: เลขฐานสิบหก → ฐานสิบ' },
+  { name: 'ด่าน 2: เลขฐานสิบ → ฐานสิบหก' },
+  { name: 'ด่าน 3: การบวกและลบเลขฐานสิบหก' },
+  { name: 'ด่าน 4: โจทย์ท้าทาย (หลักมาก, การคูณ)' }
+];
+
+// ['conv', ค่า, ฐานต้นทาง, ฐานปลายทาง]  |  ['arith', a, op, b, ฐาน]
+const SPECS = [
+  // ด่าน 1: ฐาน 16 → ฐาน 10
+  [['conv','B',16,10],['conv','2F',16,10],['conv','A5',16,10],['conv','7D',16,10],['conv','FF',16,10],
+   ['conv','C8',16,10],['conv','1BC',16,10],['conv','1A3',16,10],['conv','3E8',16,10],['conv','ABC',16,10]],
+  // ด่าน 2: ฐาน 10 → ฐาน 16
+  [['conv','30',10,16],['conv','75',10,16],['conv','100',10,16],['conv','200',10,16],['conv','255',10,16],
+   ['conv','300',10,16],['conv','500',10,16],['conv','1000',10,16],['conv','1234',10,16],['conv','4095',10,16]],
+  // ด่าน 3: บวก ลบ ในฐาน 16
+  [['arith','3B','+','4D',16],['arith','2F','+','1A',16],['arith','A9','+','5E',16],['arith','1F4','+','2B',16],['arith','FF','+','1',16],
+   ['arith','A5','-','3C',16],['arith','FF','-','7A',16],['arith','3E8','-','1F4',16],['arith','ABC','-','123',16],['arith','C8','-','4F',16]],
+  // ด่าน 4: ท้าทาย
+  [['conv','1A2B',16,10],['conv','FFFF',16,10],['conv','CAFE',16,10],['conv','7FFF',16,10],['conv','4096',10,16],
+   ['conv','65535',10,16],['conv','2026',10,16],['conv','9999',10,16],['arith','1F','×','3',16],['arith','2A','×','B',16]]
+];
+
+function expandSteps(s, b, steps, keys){
+  const L = s.length; let terms = [], vals = [], total = 0;
+  for(let i=0;i<L;i++){
+    const d = P(s[i],16), pos = L-1-i, v = d*Math.pow(b,pos);
+    total += v;
+    terms.push(`${s[i]}${d>9?'('+d+')':''}×${b}^${pos}`);
+    if(v>0) vals.push(v);
+  }
+  steps.push(`${s}(${b}) = ${terms.join(' + ')}`);
+  steps.push(`= ${vals.join(' + ')}`);
+  steps.push(`= ${total}`);
+  vals.forEach(v=>keys.push(String(v))); keys.push(String(total));
+  return total;
+}
+function divSteps(n, b, steps, keys){
+  const start = n; let rem = [];
+  while(n>0){
+    const q = Math.floor(n/b), r = n%b;
+    steps.push(`${n} ÷ ${b} = ${q} เศษ ${r}${r>9?' ('+T(r,16)+')':''}`);
+    if(q>0) keys.push(String(q));
+    rem.push(T(r,b)); n = q;
+  }
+  steps.push(`อ่านเศษจากล่างขึ้นบน ได้ ${rem.reverse().join('')}`);
+}
+function groupBin(bin, k){
+  const pad = (k - bin.length % k) % k;
+  const p = '0'.repeat(pad) + bin, g = [];
+  for(let i=0;i<p.length;i+=k) g.push(p.slice(i,i+k));
+  return g;
+}
+function build(level, spec){
+  const steps = [], keys = [];
+  let text, answer;
+  if(spec[0]==='conv'){
+    const [,s,from,to] = spec;
+    const dec = P(s,from);
+    answer = T(dec,to);
+    text = `จงแปลง ${s}${sub(from)} เป็นเลขฐาน ${to}`;
+    if(to===10){
+      expandSteps(s,from,steps,keys);
+    } else if(from===10){
+      divSteps(dec,to,steps,keys);
+    } else if(from===2){
+      const k = to===8?3:4, g = groupBin(s,k);
+      steps.push(`แบ่งเลขฐานสองทีละ ${k} หลัก จากขวามาซ้าย: ${g.join(' ')}`);
+      steps.push(g.map(x=>`${x} = ${T(P(x,2),to)}`).join(', '));
+      steps.push(`ได้ ${answer}`);
+      g.forEach(x=>keys.push(x));
+    } else if(to===2){
+      const k = from===8?3:4;
+      const g = s.split('').map(c=>P(c,16).toString(2).padStart(k,'0'));
+      steps.push(g.map((x,i)=>`${s[i]} = ${x}`).join(', '));
+      steps.push(`นำมาต่อกัน ${g.join(' ')} → ตัด 0 หน้าสุดออก ได้ ${answer}`);
+      g.forEach(x=>keys.push(x));
+    } else { // 8 <-> 16 ผ่านฐานสอง
+      const bin = T(dec,2);
+      const kf = from===8?3:4, kt = to===8?3:4;
+      steps.push(`แปลงเป็นฐานสองก่อน: ${s.split('').map(c=>P(c,16).toString(2).padStart(kf,'0')).join(' ')} → ${bin}`);
+      steps.push(`แบ่งทีละ ${kt} หลัก: ${groupBin(bin,kt).join(' ')}`);
+      steps.push(`ได้ ${answer}`);
+      keys.push(bin);
+    }
+    keys.push(answer);
+  } else {
+    const [,a,op,b,base] = spec;
+    const da = P(a,base), db = P(b,base);
+    const dr = op==='+'?da+db : op==='-'?da-db : da*db;
+    answer = T(dr,base);
+    text = `จงหาค่าของ ${a}${sub(base)} ${op} ${b}${sub(base)} ตอบเป็นเลขฐาน ${base}`;
+    steps.push(`แปลงเป็นฐานสิบ: ${a}(${base}) = ${da}, ${b}(${base}) = ${db}`);
+    steps.push(`คำนวณ: ${da} ${op} ${db} = ${dr}`);
+    steps.push(`แปลง ${dr} กลับเป็นฐาน ${base} ได้ ${answer}`);
+    steps.push(`(หรือตั้งบวก/ลบ/คูณในฐาน ${base} ตรง ๆ ก็ได้ ผลเท่ากัน)`);
+    [String(da),String(db),String(dr),a,b].forEach(k=>keys.push(k));
+    keys.push(answer);
+  }
+  return { level, text, answer, steps, keys: [...new Set(keys)] };
+}
+const QUESTIONS = [];
+SPECS.forEach((arr,li)=>arr.forEach(sp=>QUESTIONS.push(build(li,sp))));
+const TOTAL = QUESTIONS.length; // 40
+
+/* ============================================================
+   2) ตรวจคำตอบ / ให้คะแนน
+   ============================================================ */
+function norm(s){
+  return String(s||'').trim().toUpperCase().replace(/\s+/g,'')
+    .replace(/(\(\d+\)|_\d+|[₀-₉]+)$/,'').replace(/^0+(?=.)/,'');
+}
+const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+function gradeMethod(method, keys){
+  if(String(method||'').trim().length < 5) return 0;
+  let found = 0;
+  keys.forEach(k=>{
+    try{ if(new RegExp('(?<![0-9A-Za-z])'+escRe(k)+'(?![0-9A-Za-z])','i').test(method)) found++; }catch(e){}
+  });
+  const needed = Math.max(1, Math.ceil(keys.length*0.6));
+  return Math.round(7*Math.min(1, found/needed));
+}
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ============================================================
+   3) การจัดเก็บข้อมูล (Local Storage)
+   ============================================================ */
+const KEY = 'nbq_v2_students';
+const db = () => { try{ return JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){ return {}; } };
+const save = d => localStorage.setItem(KEY, JSON.stringify(d));
+let currentId = null;   // รหัสนิสิต (ตัวพิมพ์ใหญ่)
+const rec = () => db()[currentId];
+function update(fn){ const d = db(); fn(d[currentId]); save(d); }
+
+/* ============================================================
+   4) หน้าจอ
+   ============================================================ */
+const app = document.getElementById('app');
+
+/* ---------- ติดต่อกับ Google Sheets ---------- */
+async function api(payload){
+  const res = await fetch(SHEET_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // เลี่ยง CORS preflight
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+let syncState = '';
+function syncText(){
+  if(!online()) return '';
+  return syncState==='ok' ? '☁ บันทึกลงชีตแล้ว'
+       : syncState==='fail' ? '⚠ ยังบันทึกลงชีตไม่สำเร็จ (จะลองใหม่อัตโนมัติ)'
+       : syncState==='busy' ? '☁ กำลังบันทึก...' : '';
+}
+function updateSync(){
+  const el = document.getElementById('sync');
+  if(el) el.textContent = syncText();
+}
+function detailRows(r){
+  const rows = [];
+  r.answers.forEach((a,i)=>{
+    if(!a) return;
+    const q = QUESTIONS[i];
+    rows.push([r.id,r.name,q.level+1,i+1,q.text.replace(/<[^>]+>/g,''),a.method,a.answer,q.answer,
+               a.correct?'ถูก':'ผิด',a.mScore,a.aScore]);
+  });
+  return rows;
+}
+async function syncRecord(){
+  if(!online() || !currentId) return;
+  const r = rec(); if(!r) return;
+  syncState = 'busy'; updateSync();
+  const payload = { action:'save', id:currentId, record:r };
+  if(r.done) payload.details = detailRows(r);
+  try{
+    const res = await api(payload);
+    syncState = res.ok ? 'ok' : 'fail';
+  }catch(e){ syncState = 'fail'; }
+  updateSync();
+}
+
+function viewLogin(msg, type){
+  app.innerHTML = `
+  <div class="card">
+    <h2 style="margin-top:0">เริ่มภารกิจ</h2>
+    <label for="sid">รหัสนิสิต</label>
+    <input type="text" id="sid" placeholder="เช่น 66012345" autocomplete="off">
+    <label for="sname">ชื่อ-นามสกุล</label>
+    <input type="text" id="sname" placeholder="ชื่อ นามสกุล" autocomplete="off">
+    <div class="msg info">1 รหัสนิสิต เริ่มทำภารกิจได้ 1 ครั้งเท่านั้น หากทำค้างไว้ใส่รหัสเดิมเพื่อเล่นต่อได้</div>
+    ${msg?`<div class="msg ${type||'err'}">${msg}</div>`:''}
+    <div class="row"><button id="go">เริ่ม / เล่นต่อ</button></div>
+  </div>
+  ${online() ? '' : `<div class="card">
+    <b>สำหรับครู</b>
+    <p class="hint">ดาวน์โหลดผลของนิสิตทุกคนที่เล่นบนเครื่อง/เบราว์เซอร์นี้</p>
+    <div class="row">
+      <button class="sec" id="allsum">คะแนนรวม (CSV)</button>
+      <button class="sec" id="alldet">รายละเอียดวิธีทำ (CSV)</button>
+    </div>
+  </div>`}`;
+  document.getElementById('go').onclick = start;
+  if(!online()){
+    document.getElementById('allsum').onclick = () => downloadSummary(Object.keys(db()));
+    document.getElementById('alldet').onclick = () => downloadDetail(Object.keys(db()));
+  }
+  document.getElementById('sid').addEventListener('keydown',e=>{ if(e.key==='Enter') start(); });
+}
+
+async function start(){
+  const idRaw = document.getElementById('sid').value.trim();
+  const name = document.getElementById('sname').value.trim();
+  if(!/^[A-Za-z0-9]{5,15}$/.test(idRaw)) return viewLogin('รหัสนิสิตต้องเป็นตัวอักษรหรือตัวเลข 5–15 ตัว ไม่มีช่องว่าง');
+  const id = idRaw.toUpperCase();
+
+  if(online()){
+    // โหมดเชื่อมชีต: ให้ชีตเป็นผู้ตัดสินว่ารหัสนี้เล่นได้หรือไม่
+    const btn = document.getElementById('go');
+    btn.disabled = true; btn.textContent = 'กำลังตรวจสอบกับชีต...';
+    let res;
+    try{ res = await api({ action:'start', id, name }); }
+    catch(e){ return viewLogin('เชื่อมต่อชีตไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่อีกครั้ง'); }
+    if(!res.record) return viewLogin(esc(res.message || 'เกิดข้อผิดพลาด'));
+    const dd = db(); dd[id] = res.record; save(dd);
+    currentId = id; syncState = res.status==='new' ? '' : 'ok';
+    return res.status==='done' ? viewDoneBlocked() : render();
+  }
+
+  const d = db();
+  if(d[id]){
+    if(d[id].done){
+      currentId = id;
+      return viewDoneBlocked();
+    }
+    currentId = id; // เล่นต่อ
+    return render();
+  }
+  if(!name) return viewLogin('กรุณากรอกชื่อ-นามสกุล');
+  d[id] = { id, name, idx:0, answers:[], done:false, startedAt:new Date().toISOString(), finishedAt:null };
+  save(d);
+  currentId = id;
+  render();
+}
+
+function viewDoneBlocked(){
+  app.innerHTML = `
+  <div class="card">
+    <h2 style="margin-top:0">รหัสนิสิต ${esc(currentId)} ทำภารกิจครบแล้ว</h2>
+    <div class="msg err">ไม่สามารถเริ่มเล่นซ้ำด้วยรหัสเดิมได้ (จำกัด 1 ครั้งต่อ 1 รหัส)</div>
+    <div class="row">
+      <button id="vr">ดูสรุปคะแนนของฉัน</button>
+      <button class="sec" id="bk">กลับหน้าแรก</button>
+    </div>
+  </div>`;
+  document.getElementById('vr').onclick = viewSummary;
+  document.getElementById('bk').onclick = () => { currentId=null; viewLogin(); };
+}
+
+function render(){
+  const r = rec();
+  if(r.idx >= TOTAL){ finish(); return; }
+  const q = QUESTIONS[r.idx];
+  const a = r.answers[r.idx];
+  const inLevel = r.idx % 10 + 1;
+  const pct = Math.round(r.idx/TOTAL*100);
+  const score = r.answers.reduce((s,x)=>s+(x?x.mScore+x.aScore:0),0);
+
+  let body;
+  if(!a){
+    body = `
+      <label for="method">วิธีทำ (7 คะแนน) – แสดงขั้นตอนการคำนวณ</label>
+      <textarea id="method" maxlength="800" placeholder="เขียนขั้นตอน เช่น การหารเอาเศษ หรือการกระจายค่าประจำหลัก"></textarea>
+      <label for="ans">คำตอบสุดท้าย (3 คะแนน)</label>
+      <input type="text" id="ans" placeholder="พิมพ์เฉพาะตัวเลขคำตอบ" autocomplete="off">
+      <div class="row"><button id="submit">ส่งคำตอบ</button></div>
+      <div id="m"></div>`;
+  } else {
+    const ok = a.correct;
+    body = `
+      <div class="msg ${ok?'ok':'err'}">${ok?'✅ คำตอบถูกต้อง!':'❌ คำตอบยังไม่ถูกต้อง'}
+        (วิธีทำ ${a.mScore}/7 · คำตอบ ${a.aScore}/3)</div>
+      <p>คำตอบของคุณ: <b>${esc(a.answer||'-')}</b> &nbsp;|&nbsp; เฉลย: <b class="ok">${esc(q.answer)}</b></p>
+      <details ${ok?'':'open'}><summary>ดูเฉลยวิธีทำ</summary>
+        <div class="sol">${q.steps.map(s=>`<div>${esc(s)}</div>`).join('')}</div>
+      </details>
+      <div class="row"><button id="next">${r.idx===TOTAL-1?'ดูสรุปคะแนน':'ข้อถัดไป →'}</button></div>`;
+  }
+
+  app.innerHTML = `
+  <div class="card">
+    <div class="top">
+      <span>${esc(r.name)} · ${esc(r.id)} <span id="sync" class="hint">${syncText()}</span></span>
+      <span class="badge">คะแนนสะสม ${score}</span>
+    </div>
+    <div class="bar"><div style="width:${pct}%"></div></div>
+    <div class="hint">${LEVELS[q.level].name} · ข้อ ${inLevel}/10 (ข้อที่ ${r.idx+1}/${TOTAL})</div>
+    <div class="q">${q.text}</div>
+    ${body}
+  </div>`;
+
+  if(!a){
+    document.getElementById('submit').onclick = submitAnswer;
+    document.getElementById('ans').addEventListener('keydown',e=>{ if(e.key==='Enter') submitAnswer(); });
+  } else {
+    document.getElementById('next').onclick = () => {
+      update(x=>{ x.idx++; });
+      if(rec().idx >= TOTAL) finish(); else { render(); syncRecord(); }
+    };
+  }
+}
+
+function submitAnswer(){
+  const method = document.getElementById('method').value;
+  const ans = document.getElementById('ans').value;
+  if(!ans.trim()){ document.getElementById('m').innerHTML = '<div class="msg err">กรุณากรอกคำตอบสุดท้าย</div>'; return; }
+  const r = rec(), q = QUESTIONS[r.idx];
+  const correct = norm(ans) === norm(q.answer);
+  const result = { method, answer: ans.trim(), correct,
+                   mScore: gradeMethod(method, q.keys), aScore: correct?3:0 };
+  update(x=>{ x.answers[x.idx] = result; });
+  render();
+  syncRecord();
+}
+
+function finish(){
+  update(x=>{ if(!x.done){ x.done = true; x.finishedAt = new Date().toISOString(); } });
+  viewSummary();
+  syncRecord();
+}
+
+function levelStats(r){
+  return LEVELS.map((_,li)=>{
+    let s=0,c=0;
+    for(let i=li*10;i<li*10+10;i++){ const a=r.answers[i]; if(a){ s+=a.mScore+a.aScore; if(a.correct) c++; } }
+    return {score:s, correct:c};
+  });
+}
+
+function viewSummary(){
+  const r = rec(), st = levelStats(r);
+  const total = st.reduce((s,x)=>s+x.score,0);
+  app.innerHTML = `
+  <div class="card">
+    <h2 style="margin-top:0">🎉 สรุปผลภารกิจ</h2>
+    <p>${esc(r.name)} · รหัสนิสิต ${esc(r.id)}</p>
+    <div class="big">${total} / ${TOTAL*10}</div>
+    <table>
+      <tr><th>ด่าน</th><th>ถูก</th><th>คะแนน</th></tr>
+      ${st.map((x,i)=>`<tr><td>${LEVELS[i].name}</td><td>${x.correct}/10</td><td>${x.score}/100</td></tr>`).join('')}
+    </table>
+    <div class="row">
+      <button id="dl">ดาวน์โหลดคะแนนของฉัน (CSV)</button>
+      <button class="sec" id="dd">ดาวน์โหลดรายละเอียดวิธีทำ (CSV)</button>
+      <button class="sec" id="home">กลับหน้าแรก</button>
+    </div>
+    <div class="msg info">คะแนนวิธีทำคิดจากการตรวจค่าที่ปรากฏในขั้นตอนของคุณโดยอัตโนมัติ ครูสามารถตรวจทานได้</div>
+    ${online() ? `<p class="hint"><span id="sync">${syncText()}</span> <a href="#" id="retry">ส่งผลขึ้นชีตอีกครั้ง</a></p>` : ''}
+  </div>`;
+  if(online()) document.getElementById('retry').onclick = e => { e.preventDefault(); syncRecord(); };
+  document.getElementById('dl').onclick = () => downloadSummary([currentId]);
+  document.getElementById('dd').onclick = () => downloadDetail([currentId]);
+  document.getElementById('home').onclick = () => { currentId=null; viewLogin(); };
+}
+
+/* ============================================================
+   5) ดาวน์โหลด CSV (มี BOM เพื่อให้ Excel อ่านภาษาไทยได้)
+   ============================================================ */
+const csvCell = v => '"' + String(v==null?'':v).replace(/"/g,'""') + '"';
+function download(filename, rows){
+  const csv = '\uFEFF' + rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+  a.remove(); URL.revokeObjectURL(url);
+}
+function downloadSummary(ids){
+  const d = db();
+  const rows = [['รหัสนิสิต','ชื่อ-นามสกุล','ด่าน1','ด่าน2','ด่าน3','ด่าน4','คะแนนรวม','ข้อที่ทำแล้ว','สถานะ','เริ่มเมื่อ','เสร็จเมื่อ']];
+  ids.forEach(id=>{
+    const r = d[id]; if(!r) return;
+    const st = levelStats(r);
+    rows.push([r.id,r.name,...st.map(x=>x.score),st.reduce((s,x)=>s+x.score,0),
+               r.answers.filter(Boolean).length, r.done?'ทำครบ':'ยังไม่เสร็จ', r.startedAt, r.finishedAt||'']);
+  });
+  if(rows.length===1) return alert('ยังไม่มีข้อมูล');
+  download('number_base_quest_scores.csv', rows);
+}
+function downloadDetail(ids){
+  const d = db();
+  const rows = [['รหัสนิสิต','ชื่อ-นามสกุล','ด่าน','ข้อที่','โจทย์','วิธีทำของนิสิต','คำตอบนิสิต','เฉลย','ถูก/ผิด','คะแนนวิธีทำ','คะแนนคำตอบ']];
+  ids.forEach(id=>{
+    const r = d[id]; if(!r) return;
+    r.answers.forEach((a,i)=>{
+      if(!a) return;
+      const q = QUESTIONS[i];
+      rows.push([r.id,r.name,q.level+1,i+1,q.text.replace(/<[^>]+>/g,''),a.method,a.answer,q.answer,
+                 a.correct?'ถูก':'ผิด',a.mScore,a.aScore]);
+    });
+  });
+  if(rows.length===1) return alert('ยังไม่มีข้อมูล');
+  download('number_base_quest_details.csv', rows);
+}
+
+viewLogin();
+</script>
+</body>
+</html>
